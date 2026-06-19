@@ -13,9 +13,10 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints/
 
-# Project specific data and outputs
+# Dataset - Não enviar o dataset pesado!
 img_align_celeba/
-outputs/
+
+# Heavy model weights - O GitHub bloqueia ficheiros > 100MB
 *.pth
 *.pt
 *.ckpt
