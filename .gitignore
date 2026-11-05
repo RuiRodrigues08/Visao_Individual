@@ -9,19 +9,19 @@ venv/
 .venv/
 env.bak/
 venv.bak/
-
-# Jupyter Notebook
 .ipynb_checkpoints/
 
-# Dataset - Não enviar o dataset pesado!
+# Dataset (too large to version)
 img_align_celeba/
 
-# Heavy model weights - O GitHub bloqueia ficheiros > 100MB
+# Model weights (too large to version)
 *.pth
 *.pt
 *.ckpt
 
-# OS generated files
+# Editors / OS
+.vscode/
+.idea/
 .DS_Store
 .DS_Store?
 ._*
