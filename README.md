@@ -12,39 +12,27 @@ Reconstruction of erased regions of faces (CelebA) with a U-Net generator and a 
 
 **[Full report (notebook, in Portuguese)](Relatório.ipynb)**
 
-## Table of contents
+Individual academic project · Computer Vision and Image Processing · Master's in Informatics Engineering, University of Minho · 2025/2026
 
-- [About the project](#about-the-project)
-- [Quick start](#quick-start)
-- [How it works](#how-it-works)
-- [Results](#results)
-- [Repository structure](#repository-structure)
-- [Technologies](#technologies)
-- [How to run](#how-to-run)
-- [References](#references)
-- [License](#license)
-- [Author](#author)
+## Overview
 
-## About the project
+Individual master's project on GANs and autoencoders, based on Pathak et al., *Context Encoders: Feature Learning by Inpainting* (CVPR 2016). A network receives an image with a square erased at a random position and has to "invent" the missing content. I trained the same model with three different losses and compared quantitative (PSNR/SSIM) and visual results.
 
-Individual master's project on GANs and autoencoders, based on Pathak et al., *Context Encoders: Feature Learning by Inpainting* (CVPR 2016). A network receives an image with a square erased at a random position and has to "invent" the missing content. The project trains the same model with three different losses and compares quantitative (PSNR/SSIM) and visual results.
+## What I did
 
-Course: Computer Vision and Image Processing, 2025/2026
+- Implemented a Context Encoder with a U-Net generator (30.2 M parameters) and a PatchGAN discriminator (2.8 M) in PyTorch, both adapting their depth to the image size.
+- Built the CelebA data pipeline with random 64×64 masks, storing each mask's position so only the reconstructed region is evaluated.
+- Trained and compared three losses (L2, GAN and Joint) for 150 epochs each, about 11 hours on an RTX 3060 Laptop.
+- Tuned the adversarial weight (0.002 instead of the paper's 0.001) and replaced transposed convolutions with upsampling + convolution to avoid checkerboard artefacts.
+- Evaluated with PSNR/SSIM on the masked region and documented everything in a notebook report.
 
-## Quick start
+## Skills demonstrated
 
-```bash
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-# put CelebA (aligned) in img_align_celeba/img_align_celeba/
-jupyter notebook "Relatório.ipynb"
-```
-
-Set `DEBUG = True` in section 4 for a 10-epoch smoke test before the full 11-hour run.
+Deep learning · generative adversarial networks · image inpainting · PyTorch · experiment design and comparison · image quality metrics (PSNR, SSIM) · GPU training
 
 ## How it works
 
-A face image is erased in a 64×64 px square at a random position. A **generator** (U-Net) receives the image with the hole and tries to fill it. To help it produce realistic textures, a **discriminator** (PatchGAN) is trained at the same time; It looks at the image and tries to tell whether it is real or generated. This is the base GAN idea. Two competing networks, the generator trying to fool and the discriminator trying not to be fooled.
+A face image is erased in a 64×64 px square at a random position. A **generator** (U-Net) receives the image with the hole and tries to fill it. To help it produce realistic textures, a **discriminator** (PatchGAN) is trained at the same time. It looks at the image and tries to tell whether it is real or generated. This is the basic GAN idea: two competing networks, the generator trying to fool the discriminator and the discriminator trying not to be fooled.
 
 ```mermaid
 flowchart LR
@@ -88,7 +76,7 @@ CelebA (`img_align_celeba`, 202,599 images). The first 20,000 are used: 18,000 f
 |  GAN Only    |   10.42   | 0.185 |      Failed, Loss_G diverged       |
 |  Joint Loss  |   18.66   | 0.491 | Good, with occasional disturbances |
 
-Metrics at epoch 150, **on the masked region only**. Note: the per-epoch evaluation uses only the first 5 batches of the validation set (320 of 2,000 images, no shuffling) and the mask is re-sampled at every evaluation, so values are somewhat noisy (e.g. occasional PSNR drops mid-training). The values reported by Pathak et al. (PSNR ≈ 23–25 dB, SSIM ≈ 0.85–0.90) are not directly comparable: they use a fixed central mask, evaluate on the full image and train for much longer.
+Metrics at epoch 150, **on the masked region only**. Note: the per-epoch evaluation uses only the first 5 batches of the validation set (320 of 2,000 images, no shuffling) and the mask is re-sampled at every evaluation, so values are somewhat noisy (e.g. occasional PSNR drops mid-training). These values are not directly comparable to those reported by Pathak et al., who use a fixed central mask, a different dataset and a much longer training.
 
 ![Loss, PSNR and SSIM curves](docs/images/loss-metrics-curves.png)
 
@@ -98,49 +86,23 @@ Metrics at epoch 150, **on the masked region only**. Note: the per-epoch evaluat
 
 Each row of the grid shows, in order: masked input, generator output, composited image and original. Samples for each experiment are in `outputs/l2_only`, `outputs/gan_only` and `outputs/joint` (epoch 1, then every 5 epochs), together with the final generator weights (`*.pth`, not versioned).
 
-### Limitations and future work
+## Lessons learned and next steps
 
-- Only 20,000 images and 150 epochs, well below the original paper's training.
-- PSNR/SSIM measure pixel-wise fidelity and penalise Joint for generating plausible textures that differ from the original. Perceptual metrics such as LPIPS or FID are missing.
+- PSNR/SSIM measure pixel-wise fidelity and penalise Joint for generating plausible textures that differ from the original. Perceptual metrics such as LPIPS or FID would capture what the eye sees.
+- Without a reconstruction anchor, the pure GAN diverges: the L2 term is what keeps the adversarial training stable.
 - Joint still fails in some cases (see the last row of the visual comparison, with artefacts around the mouth).
-- Per-epoch evaluation uses a validation subset with random masks (see above), and there is no separate test set.
-- A single seed and a single run per mode, with no confidence intervals.
+- Next steps: train on more of CelebA and for longer (here 20,000 images and 150 epochs, well below the original paper), evaluate on a fixed validation set and a separate test set, and repeat with several seeds to get confidence intervals.
 
-## Repository structure
+## Running it locally
 
-```
-.
-├── Relatório.ipynb        # code + full report (data, models, training, discussion)
-├── requirements.txt       # dependencies
-├── LICENSE                # MIT license
-├── docs/images/           # figures used in this README
-└── outputs/
-    ├── dataset_examples.png, loss_comparison.png, visual_comparison.png
-    ├── l2_only/ gan_only/ joint/                                           # per-epoch samples (+ .pth weights, git-ignored)
-    └── context_encoder_joint_final.pth                                     # final Joint generator (git-ignored)
-```
-
-## Technologies
-
-Python, PyTorch, torchvision, scikit-image (PSNR/SSIM), NumPy, Matplotlib, Pillow, Jupyter.
-
-## How to run
-
-Prerequisites: Python 3.12 (tested with 3.12.3), a CUDA GPU recommended (the notebook falls back to CPU) and the [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) dataset (aligned version) in `img_align_celeba/img_align_celeba/`. The dataset and the weights (`*.pth`) are not in the repository.
+Requires Python 3.12, a CUDA GPU (recommended) and the [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) aligned images in `img_align_celeba/img_align_celeba/` (not included).
 
 ```bash
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 jupyter notebook "Relatório.ipynb"
 ```
 
-Run the cells in order. The `DEBUG` flag (section 4) selects the mode:
-
-- `DEBUG = True`: 64 px, 2,000 images, 10 epochs (quick pipeline test).
-- `DEBUG = False`: 128 px, 20,000 images, 150 epochs (the configuration behind the results above).
-
-Plots and samples are saved to `outputs/`. With `DEBUG = False`, training all three experiments takes about 11 hours on an RTX 3060 Laptop. The notebook does not load saved weights and always trains from scratch (to just see the results, open the notebook, which already includes the saved outputs).
+Set `DEBUG = True` in section 4 for a 10-epoch smoke test; the full run takes about 11 hours. To only see the results, open the notebook, which already includes the saved outputs.
 
 ## References
 
